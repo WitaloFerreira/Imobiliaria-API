@@ -1,6 +1,7 @@
 package com.witaloferreira.imobiliariaapi.controllers;
 
 import com.witaloferreira.imobiliariaapi.models.Imovel;
+import com.witaloferreira.imobiliariaapi.services.ClienteService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,9 +14,13 @@ import java.util.List;
 @RestController
 @RequestMapping(value = "/imoveis")
 public class ImovelController {
-    private List<Imovel> bancoDeDados;
-    public ImovelController() {
-        bancoDeDados = new ArrayList<Imovel>();
+
+    private final List<Imovel> bancoDeDados;
+    private final ClienteService clienteService;
+
+    public ImovelController(ClienteService clienteService) {
+        this.bancoDeDados = new ArrayList<Imovel>();
+        this.clienteService = clienteService;
     }
 
     @GetMapping
@@ -25,27 +30,40 @@ public class ImovelController {
 
     @GetMapping("/{id}")
     public ResponseEntity<Imovel> buscarPorId(@PathVariable int id) {
-        // Passagem por Valor Local: varrendo a lista no servidor
         for (Imovel imovel : bancoDeDados) {
             if (imovel.getId() == id) {
                 return ResponseEntity.ok(imovel);
             }
         }
-        return null;
+        return ResponseEntity.notFound().build();
     }
 
     @PostMapping
-    public ResponseEntity<Imovel> cadastrar(@RequestBody Imovel imovel) {
+    public ResponseEntity<?> cadastrar(@RequestBody Imovel imovel) {
+        if (imovel.getProprietario() == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Erro: O imóvel deve possuir um proprietário associado.");
+        }
+
+        int proprietarioId = imovel.getProprietario().getId();
+        boolean proprietarioExiste = clienteService.existeClienteComId(proprietarioId);
+
+        if (!proprietarioExiste) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Erro: Não foi possível cadastrar o imóvel. O proprietário com ID " + proprietarioId + " não existe no sistema.");
+        }
+
         bancoDeDados.add(imovel);
+
         URI uri = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}").buildAndExpand(imovel.getId()).toUri();
+
         return ResponseEntity.created(uri).body(imovel);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<String> removerImovel(@PathVariable int id) {
         boolean removido = bancoDeDados.removeIf(imovel -> imovel.getId() == id);
-
         if (removido) {
             return ResponseEntity.ok("Imóvel removido com sucesso.");
         } else {

@@ -12,7 +12,9 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 
 @RestController
 @RequestMapping(value = "/contratos")
@@ -20,7 +22,9 @@ public class ContratoController {
 
     private final List<Contrato> bancoContratos = new ArrayList<>();
 
-    // Injetando os serviços para buscar os dados completos
+    // 1. Nossa Fila de Mensagens em Memória
+    private final Queue<String> filaMensagens = new LinkedList<>();
+
     private final ClienteService clienteService;
     private final ImovelService imovelService;
 
@@ -32,6 +36,14 @@ public class ContratoController {
     @GetMapping
     public ResponseEntity<List<Contrato>> findAll() {
         return ResponseEntity.ok(bancoContratos);
+    }
+
+    // 2. Endpoint para o Consumidor ler e esvaziar a fila
+    @GetMapping("/fila")
+    public ResponseEntity<List<String>> consumirFila() {
+        List<String> mensagens = new ArrayList<>(filaMensagens);
+        filaMensagens.clear(); // Esvazia a fila após a leitura
+        return ResponseEntity.ok(mensagens);
     }
 
     @GetMapping("/{id}")
@@ -46,7 +58,6 @@ public class ContratoController {
 
     @PostMapping
     public ResponseEntity<?> cadastrar(@RequestBody Contrato contrato) {
-
         int locatarioId = contrato.getLocatario().getId();
         int propriedadeId = contrato.getPropriedade().getId();
 
@@ -55,13 +66,16 @@ public class ContratoController {
 
         if (locatarioCompleto == null || propriedadeCompleta == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Erro: Cliente ou Imóvel não encontrados no sistema.");
+                    .body("Erro: Cliente ou Imóvel não encontrados.");
         }
 
         contrato.setLocatario(locatarioCompleto);
         contrato.setPropriedade(propriedadeCompleta);
 
         bancoContratos.add(contrato);
+
+        // 3. Adiciona a mensagem na fila internamente
+        filaMensagens.add("Notificação: Novo contrato gerado (ID " + contrato.getId() + ") para " + locatarioCompleto.getNome());
 
         URI uri = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}").buildAndExpand(contrato.getId()).toUri();
@@ -72,7 +86,6 @@ public class ContratoController {
     @DeleteMapping("/{id}")
     public ResponseEntity<String> removerContrato(@PathVariable int id) {
         boolean removido = bancoContratos.removeIf(contrato -> contrato.getId() == id);
-
         if (removido) {
             return ResponseEntity.ok("Contrato removido com sucesso.");
         } else {

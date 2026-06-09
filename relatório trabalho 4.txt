@@ -1,0 +1,9 @@
+Relatório Técnico - Trabalho 4 (Comunicação Indireta)
+
+1. Justificativa da Escolha
+A abordagem selecionada foi a de Filas de Mensagens (Message Queues). Esta escolha é a mais adequada para a API Imobiliária pois resolve a necessidade de desacoplamento sem exigir infraestrutura externa complexa. Implementamos uma fila em memória (Queue) no Spring Boot. Isso garantiu o desacoplamento espacial (a API não precisa do IP/Porta do script Python consumidor) e o desacoplamento temporal (contratos são gerados e as mensagens retidas na fila mesmo com o consumidor offline).
+
+2. Análise de Desempenho e Complexidade
+A introdução desta fila intermediária eliminou o acoplamento direto ponto a ponto, adicionando flexibilidade.
+ - Complexidade de Gerenciamento: A decisão de usar a memória interna em vez de um Message Broker externo (como RabbitMQ) evitou complexidade adicional de configuração de servidores e containers.
+ - Sobrecarga (Overhead) e Mitigação: A latência de rede entre o produtor e a fila é zero, pois compartilham a mesma memória. A única sobrecarga ocorre nas requisições HTTP do consumidor para esvaziar a fila. Para mitigar essa perda de desempenho, o sistema processa as mensagens em lote, puxando todas as pendências de uma única vez em vez de fazer uma requisição por mensagem.

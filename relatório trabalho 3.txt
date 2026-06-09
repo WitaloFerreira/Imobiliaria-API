@@ -1,0 +1,49 @@
+Relatório de Implementação de Serviços Remotos: API Imobiliária
+
+1. Visão Geral do Sistema
+O presente projeto consistiu no desenvolvimento de uma arquitetura de Serviços Remotos baseada no padrão REST (Representational State Transfer). O sistema foi dividido em duas partes principais: um servidor centralizado e clientes heterogêneos. O objetivo foi simular o gerenciamento de uma imobiliária, controlando entidades de Clientes, Imóveis e Contratos através de comunicação via rede utilizando o protocolo HTTP e troca de mensagens no formato JSON.
+
+2. Tecnologias Utilizadas
+
+    Servidor (Backend): Desenvolvido em Java utilizando o framework Spring Boot. A persistência de dados foi implementada em memória (RAM) através do padrão de projeto Singleton (usando a anotação @Service), garantindo que todos os clientes consumam a mesma base de dados em tempo real.
+
+    Clientes (Consumidores): Foram implementados dois scripts em linguagens distintas para provar a interoperabilidade do sistema:
+
+        Um cliente em Python, utilizando a biblioteca requests.
+
+        Um cliente em TypeScript/Node.js, utilizando a API nativa fetch.
+
+3. Serviços Remotos Disponibilizados (Endpoints)
+A API expõe três recursos principais, todos operando sob a arquitetura cliente-servidor:
+
+    Gerenciamento de Clientes (/clientes)
+
+        GET: Retorna a lista de todos os clientes cadastrados.
+
+        POST: Recebe um payload JSON e cadastra um novo cliente no sistema.
+
+        DELETE /{id}: Remove um cliente específico pela sua identificação.
+
+    Gerenciamento de Imóveis (/imoveis)
+
+        GET: Retorna os imóveis disponíveis.
+
+        POST: Cadastra ou atualiza um imóvel. Este serviço implementa a validação de integridade, exigindo que o ID do proprietário enviado no corpo da requisição já exista no serviço de Clientes.
+
+        DELETE /{id}: Remove um imóvel específico.
+
+    Gerenciamento de Contratos (/contratos)
+
+        GET: Retorna todos os contratos de locação.
+
+        POST: Cria um vínculo (agregação) entre um Locatário (Cliente) e uma Propriedade (Imóvel).
+
+4. Conceitos Técnicos Aplicados
+
+    Interoperabilidade e Sistemas Heterogêneos: O sistema provou com sucesso que aplicações escritas em linguagens completamente diferentes (Python e TypeScript) conseguem interagir com o mesmo servidor (Java) e compartilhar os mesmos dados de forma transparente, graças à padronização do protocolo HTTP e do formato JSON.
+
+    Passagem por Valor vs. Passagem por Referência: * Na criação de Imóveis, o sistema permite a Passagem por Valor, onde o cliente pode enviar o objeto do proprietário completo (com nome e email) embutido no JSON da requisição.
+
+        Na criação de Contratos, utilizou-se fortemente a Passagem por Referência. O cliente envia apenas os identificadores (IDs) do locatário e do imóvel, diminuindo o tráfego de rede.
+
+    Hidratação de Objetos no Servidor: Para suportar a passagem por referência no cadastro de contratos, o servidor foi programado com uma lógica de "hidratação". Ao receber apenas os IDs do locatário e da propriedade, o ContratoController se comunica internamente com o ClienteService e o ImovelService, busca os objetos completos na memória e preenche (hidrata) o contrato antes de salvá-lo. Isso garante que a base de dados permaneça íntegra e rica em informações, mesmo recebendo requisições enxutas dos clientes.

@@ -16,7 +16,6 @@ public class ClienteService {
     }
 
     public boolean existeClienteComId(int id) {
-        System.out.println("DEBUG: Verificando se ID " + id + " existe na lista de tamanho: " + listaClientesReais.size());
         for (Cliente cliente : listaClientesReais) {
             if (cliente.getId() == id) {
                 return true;

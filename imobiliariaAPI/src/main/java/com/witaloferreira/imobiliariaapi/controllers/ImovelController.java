@@ -1,5 +1,6 @@
 package com.witaloferreira.imobiliariaapi.controllers;
 
+import com.witaloferreira.imobiliariaapi.models.Cliente;
 import com.witaloferreira.imobiliariaapi.models.Imovel;
 import com.witaloferreira.imobiliariaapi.services.ClienteService;
 import com.witaloferreira.imobiliariaapi.services.ImovelService;
@@ -50,6 +51,14 @@ public class ImovelController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("Erro: Proprietário com ID " + proprietarioId + " não existe no sistema.");
         }
+
+        Cliente donoCompleto = clienteService.buscarPorId(proprietarioId);
+
+        if (donoCompleto == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Erro: Proprietário não existe.");
+        }
+
+        imovel.setProprietario(donoCompleto);
 
         // Como o dono existe, salva no serviço definitivo
         imovelService.salvar(imovel);

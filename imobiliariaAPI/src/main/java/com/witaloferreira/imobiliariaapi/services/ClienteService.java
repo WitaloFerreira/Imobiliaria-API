@@ -8,13 +8,15 @@ import java.util.List;
 @Service
 public class ClienteService {
 
-    private List<Cliente> listaClientesReais = new ArrayList<>();
+    private final List<Cliente> listaClientesReais = new ArrayList<>();
 
     public void salvar(Cliente cliente) {
         listaClientesReais.add(cliente);
+        System.out.println("DEBUG: Cliente " + cliente.getNome() + " salvo! Total de clientes agora: " + listaClientesReais.size());
     }
 
     public boolean existeClienteComId(int id) {
+        System.out.println("DEBUG: Verificando se ID " + id + " existe na lista de tamanho: " + listaClientesReais.size());
         for (Cliente cliente : listaClientesReais) {
             if (cliente.getId() == id) {
                 return true;
@@ -25,5 +27,18 @@ public class ClienteService {
 
     public List<Cliente> listarTodos() {
         return listaClientesReais;
+    }
+
+    public Cliente buscarPorId(int id) {
+        for (Cliente cliente : listaClientesReais) {
+            if (cliente.getId() == id) {
+                return cliente;
+            }
+        }
+        return null;
+    }
+
+    public boolean remover(int id) {
+        return listaClientesReais.removeIf(c -> c.getId() == id);
     }
 }

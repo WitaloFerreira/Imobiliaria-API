@@ -2,38 +2,37 @@ package com.witaloferreira.imobiliariaapi.controllers;
 
 import com.witaloferreira.imobiliariaapi.models.Imovel;
 import com.witaloferreira.imobiliariaapi.services.ClienteService;
+import com.witaloferreira.imobiliariaapi.services.ImovelService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
 @RequestMapping(value = "/imoveis")
 public class ImovelController {
 
-    private final List<Imovel> bancoDeDados;
+    private final ImovelService imovelService;
     private final ClienteService clienteService;
 
-    public ImovelController(ClienteService clienteService) {
-        this.bancoDeDados = new ArrayList<Imovel>();
+    public ImovelController(ImovelService imovelService, ClienteService clienteService) {
+        this.imovelService = imovelService;
         this.clienteService = clienteService;
     }
 
     @GetMapping
     public ResponseEntity<List<Imovel>> findAll() {
-        return ResponseEntity.ok(bancoDeDados);
+        return ResponseEntity.ok(imovelService.listarTodos());
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Imovel> buscarPorId(@PathVariable int id) {
-        for (Imovel imovel : bancoDeDados) {
-            if (imovel.getId() == id) {
-                return ResponseEntity.ok(imovel);
-            }
+        Imovel imovel = imovelService.buscarPorId(id);
+        if (imovel != null) {
+            return ResponseEntity.ok(imovel);
         }
         return ResponseEntity.notFound().build();
     }
@@ -41,8 +40,7 @@ public class ImovelController {
     @PostMapping
     public ResponseEntity<?> cadastrar(@RequestBody Imovel imovel) {
         if (imovel.getProprietario() == null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Erro: O imóvel deve possuir um proprietário associado.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Erro: O imóvel deve possuir um proprietário associado.");
         }
 
         int proprietarioId = imovel.getProprietario().getId();
@@ -50,10 +48,11 @@ public class ImovelController {
 
         if (!proprietarioExiste) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Erro: Não foi possível cadastrar o imóvel. O proprietário com ID " + proprietarioId + " não existe no sistema.");
+                    .body("Erro: Proprietário com ID " + proprietarioId + " não existe no sistema.");
         }
 
-        bancoDeDados.add(imovel);
+        // Como o dono existe, salva no serviço definitivo
+        imovelService.salvar(imovel);
 
         URI uri = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}").buildAndExpand(imovel.getId()).toUri();
@@ -63,12 +62,11 @@ public class ImovelController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<String> removerImovel(@PathVariable int id) {
-        boolean removido = bancoDeDados.removeIf(imovel -> imovel.getId() == id);
+        boolean removido = imovelService.remover(id);
         if (removido) {
             return ResponseEntity.ok("Imóvel removido com sucesso.");
         } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("Erro: Imóvel não encontrado para remoção.");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Erro: Imóvel não encontrado.");
         }
     }
 }
